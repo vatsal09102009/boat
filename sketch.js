@@ -7,19 +7,25 @@ var engine, world, backgroundImg;
 var canvas, angle, tower, ground, cannon;
 var balls = [];
 var boats = [];
-
 var score = 0;
-var boatAnimation=[]
-var boatSpritedata,boatSpritesheet;
-var brokenBoatAnimation=[];
-var brokenBoatSpritedata,brokenBoatSpritesheet
+var boatAnimation = [];
+var boatSpritedata, boatSpritesheet;
+
+var brokenBoatAnimation = [];
+var brokenBoatSpritedata, brokenBoatSpritesheet;
+
+var waterSplashAnimation = [];
+var waterSplashSpritedata, waterSplashSpritesheet;
+var isGameOver=false
 function preload() {
   backgroundImg = loadImage("./assets/background.gif");
   towerImage = loadImage("./assets/tower.png");
-  boatSpritedata=loadJSON("assets/boat/boat.json")
-  boatSpritesheet=loadImage("assets/boat/boat.png")
-  brokenBoatSpritedata=loadJSON("assets/boat/brokenBoat.json")
-  brokenBoatSpritesheet=loadImage("assets/boat/brokenBoat.png")
+  boatSpritedata = loadJSON("assets/boat/boat.json");
+  boatSpritesheet = loadImage("assets/boat/boat.png");
+  brokenBoatSpritedata = loadJSON("assets/boat/brokenBoat.json");
+  brokenBoatSpritesheet = loadImage("assets/boat/brokenBoat.png");
+  waterSplashSpritedata = loadJSON("assets/waterSplash/waterSplash.json");
+  waterSplashSpritesheet = loadImage("assets/waterSplash/waterSplash.png");
 }
 
 function setup() {
@@ -28,18 +34,8 @@ function setup() {
   world = engine.world;
   angleMode(DEGREES)
   angle = 15
-  var boatFrames=boatSpritedata.frames
-for(var i=0;i<boatFrames.length;i++){
-  var pos=boatFrames[i].position;
-  var img=boatSpritesheet.get(pos.x,pos.y,pos.w,pos.h)
-  boatAnimation.push(img)
-}
-var brokenBoatFrames=brokenBoatSpritedata.frames
-for(var i=0;i<brokenBoatFrames.length;i++){
-  var pos=brokenBoatFrames[i].position;
-  var img=brokenBoatSpritesheet.get(pos.x,pos.y,pos.w,pos.h)
-  brokenBoatAnimation.push(img)
-}
+
+
   ground = Bodies.rectangle(0, height - 1, width * 2, 1, { isStatic: true });
   World.add(world, ground);
 
@@ -47,6 +43,27 @@ for(var i=0;i<brokenBoatFrames.length;i++){
   World.add(world, tower);
 
   cannon = new Cannon(180, 110, 130, 100, angle);
+
+  var boatFrames = boatSpritedata.frames;
+  for (var i = 0; i < boatFrames.length; i++) {
+    var pos = boatFrames[i].position;
+    var img = boatSpritesheet.get(pos.x, pos.y, pos.w, pos.h);
+    boatAnimation.push(img);
+  }
+
+  var brokenBoatFrames = brokenBoatSpritedata.frames;
+  for (var i = 0; i < brokenBoatFrames.length; i++) {
+    var pos = brokenBoatFrames[i].position;
+    var img = brokenBoatSpritesheet.get(pos.x, pos.y, pos.w, pos.h);
+    brokenBoatAnimation.push(img);
+  }
+
+  var waterSplashFrames = waterSplashSpritedata.frames;
+  for (var i = 0; i < waterSplashFrames.length; i++) {
+    var pos = waterSplashFrames[i].position;
+    var img = waterSplashSpritesheet.get(pos.x, pos.y, pos.w, pos.h);
+    waterSplashAnimation.push(img);
+  }
 }
 
 function draw() {
@@ -78,7 +95,7 @@ function draw() {
 
   cannon.display();
 
-
+  
 }
 
 function collisionWithBoat(index) {
@@ -87,7 +104,8 @@ function collisionWithBoat(index) {
       var collision = Matter.SAT.collides(balls[index].body, boats[i].body);
 
       if (collision.collided) {
-        boats[i].remove(i);
+          boats[i].remove(i);
+        
 
         Matter.World.remove(world, balls[index].body);
         delete balls[index];
@@ -95,6 +113,7 @@ function collisionWithBoat(index) {
     }
   }
 }
+
 
 function keyPressed() {
   if (keyCode === DOWN_ARROW) {
@@ -108,8 +127,10 @@ function keyPressed() {
 function showCannonBalls(ball, index) {
   if (ball) {
     ball.display();
+    ball.animate();
     if (ball.body.position.x >= width || ball.body.position.y >= height - 50) {
-      ball.remove(index);
+        ball.remove(index);
+      
     }
   }
 }
@@ -122,7 +143,14 @@ function showBoats() {
     ) {
       var positions = [-40, -60, -70, -20];
       var position = random(positions);
-      var boat = new Boat(width, height - 100, 170, 170, position,boatAnimation);
+      var boat = new Boat(
+        width,
+        height - 100,
+        170,
+        170,
+        position,
+        boatAnimation
+      );
 
       boats.push(boat);
     }
@@ -136,12 +164,18 @@ function showBoats() {
 
         boats[i].display();
         boats[i].animate();
-      } else {
-        boats[i];
-      }
+        var collision=Matter.SAT.collides(tower,boats[i].body)}
+        if (collision.collided&& !boats[i].isBroken){
+          isGameOver=true;
+          gameOver();
+        }
+        else{
+          boats[i]
+        }
     }
+    
   } else {
-    var boat = new Boat(width, height - 60, 170, 170, -60,boatAnimation);
+    var boat = new Boat(width, height - 60, 170, 170, -60, boatAnimation);
     boats.push(boat);
   }
 }
@@ -150,4 +184,21 @@ function keyReleased() {
   if (keyCode === DOWN_ARROW) {
     balls[balls.length - 1].shoot();
   }
+}
+function gameOver(){
+  swal(
+    {
+      title:"Game Over!!!",
+      text:"Thanks For Playing!",
+      imageUrl:"https://raw.githubusercontent.com/whitehatjr/PiratesInvasion/main/assets/boat.png",
+      imageSize:"150x150",
+      confirmButtonText:"Play Again"
+    },
+    function(isConfirm){
+      if(isConfirm){
+        location.reload()
+      }
+    }
+
+)
 }
